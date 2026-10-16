@@ -17,7 +17,9 @@ const firebaseConfig = {
 
 const COLECCION = "arboles";
 const COLECCION_USOS = "usos_arboles";
-const MODO_DEMO = firebaseConfig.apiKey === "TU_API_KEY";
+const COLECCION_ACTIVIDADES = "actividades_tala";
+const MODO_DEMO = firebaseConfig.apiKey === "TU_API_KEY" ||
+  (location.hostname === "localhost" && new URLSearchParams(location.search).get("modo") === "demo");
 
 const CATEGORIAS = {
   frutal: "🍎 Frutal",
@@ -87,6 +89,19 @@ let arbolSeleccionado = null;
 let usosAportados = [];
 let usosArbolActual = null;
 let detenerEscuchaUsos = null;
+let authSdk = null;
+let auth = null;
+let usuarioActual = null;
+let actividadesAbiertas = [];
+let misActividades = [];
+let reclamosMios = new Set();
+let detenerEscuchaActividadesPublicas = null;
+let uidEscuchadoActividades = null;
+let mapaExplorar = null;
+let capaActividades = null;
+let mapaPublicar = null;
+let marcadorUbicacionActividad = null;
+let ubicacionActividad = null;
 
 // ---------- utilidades ----------
 const $ = (sel) => document.querySelector(sel);
@@ -391,22 +406,485 @@ function comprimirImagen(archivo, maxLado = 800, calidad = 0.7) {
 // ---------- almacenamiento ----------
 let fb = null; // funciones de Firestore cuando hay configuración real
 
-async function iniciarAlmacenamiento() {
+function activarVistaActividades(vista) {
+  document.querySelectorAll(".actividad-tab").forEach((boton) => {
+    const activa = boton.dataset.vista === vista;
+    boton.classList.toggle("activo", activa);
+    boton.setAttribute("aria-selected", String(activa));
+  });
+  document.querySelectorAll(".actividad-vista").forEach((panel) => {
+    panel.hidden = panel.id !== `vista-${vista}`;
+  });
+
+  requestAnimationFrame(() => {
+    if (vista === "explorar") {
+      iniciarMapaExplorar();
+      mapaExplorar?.invalidateSize();
+    }
+    if (vista === "publicar") {
+      iniciarMapaPublicar();
+      mapaPublicar?.invalidateSize();
+    }
+  });
+}
+
+function formatoFecha(fecha) {
+  if (!fecha) return "Fecha por confirmar";
+  const [anio, mes, dia] = fecha.split("-").map(Number);
+  return new Intl.DateTimeFormat("es", { dateStyle: "long" }).format(new Date(anio, mes - 1, dia));
+}
+
+function htmlCategoriasActividad(categorias) {
+  return (Array.isArray(categorias) ? categorias : [])
+    .filter((categoria) => CATEGORIAS[categoria])
+    .map((categoria) => `<span class="etiqueta">${CATEGORIAS[categoria]}</span>`)
+    .join("");
+}
+
+function iniciarMapaExplorar() {
+  if (mapaExplorar || !window.L || !$("#mapa-actividades")) return;
+  mapaExplorar = L.map("mapa-actividades", { scrollWheelZoom: false }).setView([20, 0], 2);
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    maxZoom: 19,
+    attribution: "&copy; OpenStreetMap contributors"
+  }).addTo(mapaExplorar);
+  capaActividades = L.layerGroup().addTo(mapaExplorar);
+  renderMarcadoresActividades();
+}
+
+function iniciarMapaPublicar() {
+  if (mapaPublicar || !window.L || !$("#mapa-publicacion")) return;
+  mapaPublicar = L.map("mapa-publicacion").setView([20, 0], 2);
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    maxZoom: 19,
+    attribution: "&copy; OpenStreetMap contributors"
+  }).addTo(mapaPublicar);
+  mapaPublicar.on("click", (evento) => ponerUbicacionActividad(evento.latlng));
+}
+
+function abrirDetalleActividad(actividad) {
+  const propia = actividad.creadorId === usuarioActual?.uid;
+  const reclamada = reclamosMios.has(actividad.id);
+  const acciones = propia
+    ? `<div class="actividad-acciones">
+        <button class="btn-secundario ver-reclamos-detalle" type="button" data-id="${esc(actividad.id)}">Ver reclamos</button>
+        <button class="btn-secundario cambiar-estado-actividad" type="button" data-id="${esc(actividad.id)}">${actividad.estado === "abierta" ? "Cerrar actividad" : "Reabrir actividad"}</button>
+      </div>
+      <div id="detalle-reclamos-actividad" class="reclamos-actividad" hidden></div>`
+    : `<button class="btn-secundario reclamar-actividad" type="button" data-id="${esc(actividad.id)}" ${reclamada || !usuarioActual ? "disabled" : ""}>${reclamada ? "Ya enviaste tu interés" : "Me interesa reclamar"}</button>`;
+  const categorias = htmlCategoriasActividad(actividad.categorias);
+  const latitud = Number(actividad.latitud);
+  const longitud = Number(actividad.longitud);
+  const enlaceMapa = Number.isFinite(latitud) && Number.isFinite(longitud)
+    ? `<a class="actividad-enlace-mapa" href="https://www.openstreetmap.org/?mlat=${latitud}&mlon=${longitud}#map=16/${latitud}/${longitud}" target="_blank" rel="noopener noreferrer">Ver punto en OpenStreetMap</a>`
+    : "";
+  const dialogo = $("#detalle-actividad");
+  dialogo.innerHTML = `
+    <button class="detalle-cerrar" type="button" aria-label="Cerrar actividad">Cerrar</button>
+    <div class="detalle-cuerpo detalle-cuerpo-actividad">
+      <p class="detalle-kicker">${actividad.estado === "abierta" ? "Actividad abierta" : "Actividad cerrada"}</p>
+      <h3 id="detalle-actividad-titulo">${esc(actividad.titulo)}</h3>
+      <div class="actividad-meta"><span>${esc(actividad.empresa)}</span><span>${esc(formatoFecha(actividad.fecha))}</span></div>
+      ${categorias ? `<div class="etiquetas">${categorias}</div>` : actividad.especies ? `<p><strong>Especies:</strong> ${esc(actividad.especies)}</p>` : `<p>Tipo de árbol no especificado.</p>`}
+      <p>${esc(actividad.descripcion)}</p>
+      ${enlaceMapa}
+      ${acciones}
+    </div>`;
+  if (!dialogo.open) dialogo.showModal();
+}
+
+function abrirFormularioReclamo(actividad) {
+  $("#form-reclamo").reset();
+  $("#form-reclamo [name='actividadId']").value = actividad.id;
+  $("#actividad-reclamo-nombre").textContent = `${actividad.titulo} · ${actividad.empresa}`;
+  $("#mensaje-reclamo").textContent = "";
+  $("#dialogo-reclamo").showModal();
+}
+
+function ponerUbicacionActividad(latlng) {
+  ubicacionActividad = { latitud: latlng.lat, longitud: latlng.lng };
+  $("#form-actividad [name='latitud']").value = latlng.lat;
+  $("#form-actividad [name='longitud']").value = latlng.lng;
+  $("#estado-ubicacion").textContent = `Punto seleccionado: ${latlng.lat.toFixed(5)}, ${latlng.lng.toFixed(5)}.`;
+  if (marcadorUbicacionActividad) marcadorUbicacionActividad.remove();
+  marcadorUbicacionActividad = L.marker(latlng).addTo(mapaPublicar).bindPopup("Ubicación de la actividad").openPopup();
+}
+
+function renderMarcadoresActividades() {
+  if (!capaActividades || !window.L) return;
+  capaActividades.clearLayers();
+  const puntos = [];
+  actividadesAbiertas.forEach((actividad) => {
+    const latitud = Number(actividad.latitud);
+    const longitud = Number(actividad.longitud);
+    if (!Number.isFinite(latitud) || !Number.isFinite(longitud)) return;
+    const punto = [latitud, longitud];
+    puntos.push(punto);
+    const icono = L.divIcon({
+      className: "",
+      html: '<div class="marcador-actividad"><span>🌳</span></div>',
+      iconSize: [30, 38],
+      iconAnchor: [15, 38]
+    });
+    L.marker(punto, { icon: icono }).addTo(capaActividades)
+      .on("click", () => abrirDetalleActividad(actividad));
+  });
+  if (puntos.length === 1) mapaExplorar.setView(puntos[0], 12);
+  else if (puntos.length > 1) mapaExplorar.fitBounds(puntos, { padding: [28, 28], maxZoom: 13 });
+}
+
+function htmlActividad(actividad) {
+  const categorias = htmlCategoriasActividad(actividad.categorias);
+  return `<article class="actividad-item">
+    <button class="actividad-resumen" type="button" data-id="${esc(actividad.id)}" aria-haspopup="dialog">
+      <span class="actividad-resumen-titulo">${esc(actividad.titulo)}</span>
+      <span class="actividad-meta"><span>${esc(actividad.empresa)}</span><span>${esc(formatoFecha(actividad.fecha))}</span><span>${esc(actividad.estado === "cerrada" ? "Cerrada" : "Abierta")}</span></span>
+      ${categorias ? `<span class="etiquetas">${categorias}</span>` : ""}
+      <span class="actividad-resumen-hint">Toca para ver los detalles</span>
+    </button>
+  </article>`;
+}
+
+function renderActividades() {
+  const abiertas = [...actividadesAbiertas].sort((a, b) => (a.fecha || "").localeCompare(b.fecha || ""));
+  $("#lista-actividades").innerHTML = abiertas.map((actividad) => htmlActividad(actividad)).join("");
+  $("#sin-actividades").hidden = abiertas.length > 0;
+  if (abiertas.length === 0) $("#sin-actividades").textContent = "Todavía no hay actividades abiertas.";
+  $("#cuenta-actividades").textContent = abiertas.length;
+
+  const propias = [...misActividades].sort((a, b) => (b.creado?.seconds || 0) - (a.creado?.seconds || 0));
+  $("#lista-mias").innerHTML = propias.map((actividad) => htmlActividad(actividad)).join("");
+  $("#sin-mias").hidden = propias.length > 0;
+  $("#cuenta-mias").textContent = propias.length;
+  renderMarcadoresActividades();
+}
+
+function guardarActividadesDemo(actividades) {
+  localStorage.setItem("actividades_tala_demo", JSON.stringify(actividades));
+}
+
+function escucharActividades() {
   if (MODO_DEMO) {
+    const todas = JSON.parse(localStorage.getItem("actividades_tala_demo") || "[]");
+    actividadesAbiertas = todas.filter((actividad) => actividad.estado === "abierta");
+    misActividades = usuarioActual ? todas.filter((actividad) => actividad.creadorId === usuarioActual.uid) : [];
+    const reclamos = JSON.parse(localStorage.getItem("reclamos_tala_demo") || "[]");
+    reclamosMios = new Set(usuarioActual ? reclamos.filter((reclamo) => reclamo.usuarioId === usuarioActual.uid).map((reclamo) => reclamo.actividadId) : []);
+    renderActividades();
+    return;
+  }
+
+  if (!fb) return;
+  const actividadesRef = fb.collection(fb.db, COLECCION_ACTIVIDADES);
+  if (!detenerEscuchaActividadesPublicas) {
+    detenerEscuchaActividadesPublicas = fb.onSnapshot(fb.query(actividadesRef, fb.where("estado", "==", "abierta")), (snapshot) => {
+      actividadesAbiertas = snapshot.docs.map((documento) => ({ id: documento.id, ...documento.data() }));
+      renderActividades();
+    }, (error) => {
+      console.error("No se pudieron cargar las actividades abiertas:", error);
+      $("#sin-actividades").hidden = false;
+      $("#sin-actividades").textContent = "No se pudieron cargar las actividades. Revisa las reglas de lectura pública de Firestore.";
+    });
+  }
+
+  if (!usuarioActual) {
+    misActividades = [];
+    reclamosMios = new Set();
+    renderActividades();
+    return;
+  }
+  if (uidEscuchadoActividades === usuarioActual.uid) return;
+  uidEscuchadoActividades = usuarioActual.uid;
+
+  fb.onSnapshot(fb.query(actividadesRef, fb.where("creadorId", "==", usuarioActual.uid)), (snapshot) => {
+    misActividades = snapshot.docs.map((documento) => ({ id: documento.id, ...documento.data() }));
+    renderActividades();
+  }, (error) => console.error("No se pudieron cargar tus actividades:", error));
+}
+
+async function publicarActividad(datos) {
+  if (MODO_DEMO) {
+    const actividades = JSON.parse(localStorage.getItem("actividades_tala_demo") || "[]");
+    actividades.push({ ...datos, id: `demo-${Date.now()}`, creado: { seconds: Date.now() / 1000 } });
+    guardarActividadesDemo(actividades);
+    escucharActividades();
+    return;
+  }
+  await fb.addDoc(fb.collection(fb.db, COLECCION_ACTIVIDADES), {
+    ...datos,
+    creado: fb.serverTimestamp()
+  });
+}
+
+async function enviarReclamo(actividadId, datos) {
+  if (MODO_DEMO) {
+    const reclamos = JSON.parse(localStorage.getItem("reclamos_tala_demo") || "[]");
+    if (reclamos.some((reclamo) => reclamo.actividadId === actividadId && reclamo.usuarioId === usuarioActual.uid)) {
+      throw new Error("Ya enviaste tu interés por esta actividad.");
+    }
+    reclamos.push({ ...datos, actividadId, usuarioId: usuarioActual.uid, creado: new Date().toISOString() });
+    localStorage.setItem("reclamos_tala_demo", JSON.stringify(reclamos));
+    escucharActividades();
+    return;
+  }
+  const referencia = fb.doc(fb.db, COLECCION_ACTIVIDADES, actividadId, "reclamos", usuarioActual.uid);
+  await fb.setDoc(referencia, { ...datos, actividadId, usuarioId: usuarioActual.uid, creado: fb.serverTimestamp() });
+}
+
+async function cambiarEstadoActividad(actividad, estado) {
+  if (MODO_DEMO) {
+    const todas = JSON.parse(localStorage.getItem("actividades_tala_demo") || "[]");
+    guardarActividadesDemo(todas.map((item) => item.id === actividad.id ? { ...item, estado } : item));
+    escucharActividades();
+    return;
+  }
+  await fb.updateDoc(fb.doc(fb.db, COLECCION_ACTIVIDADES, actividad.id), { estado });
+}
+
+async function cargarReclamosActividad(actividadId, selector = `#reclamos-${CSS.escape(actividadId)}`) {
+  const contenedor = $(selector);
+  if (!contenedor) return;
+  contenedor.hidden = false;
+  contenedor.innerHTML = "<p>Cargando reclamos...</p>";
+  let reclamos;
+  if (MODO_DEMO) {
+    reclamos = JSON.parse(localStorage.getItem("reclamos_tala_demo") || "[]").filter((reclamo) => reclamo.actividadId === actividadId);
+  } else {
+    const referencia = fb.collection(fb.db, COLECCION_ACTIVIDADES, actividadId, "reclamos");
+    const snapshot = await fb.getDocs(referencia);
+    reclamos = snapshot.docs.map((documento) => documento.data());
+  }
+  contenedor.innerHTML = reclamos.length
+    ? reclamos.map((reclamo) => `<div class="reclamo-mensaje"><strong>${esc(reclamo.nombre)}</strong> · ${esc(reclamo.contacto)}${reclamo.mensaje ? `<p>${esc(reclamo.mensaje)}</p>` : ""}</div>`).join("")
+    : "<p>Aún no hay reclamos.</p>";
+}
+
+function mostrarVistaPrincipal(vista, desplazar = true) {
+  const actividadesActivas = vista === "actividades";
+  $("#catalogo").hidden = actividadesActivas;
+  $("#actividades").hidden = !actividadesActivas;
+  $("#estadisticas").hidden = actividadesActivas;
+  document.querySelectorAll("[data-vista-principal]").forEach((enlace) => {
+    const activo = enlace.dataset.vistaPrincipal === vista;
+    enlace.classList.toggle("activo", activo);
+    if (enlace.closest(".nav")) {
+      if (activo) enlace.setAttribute("aria-current", "page");
+      else enlace.removeAttribute("aria-current");
+    }
+  });
+
+  if (actividadesActivas) {
+    requestAnimationFrame(() => {
+      iniciarMapaExplorar();
+      mapaExplorar?.invalidateSize();
+    });
+  }
+  if (desplazar) $(actividadesActivas ? "#actividades" : "#catalogo").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function inicializarNavegacionPrincipal() {
+  document.querySelectorAll("[data-vista-principal]").forEach((enlace) => {
+    enlace.addEventListener("click", (evento) => {
+      evento.preventDefault();
+      const vista = enlace.dataset.vistaPrincipal;
+      history.replaceState(null, "", `#${vista}`);
+      mostrarVistaPrincipal(vista);
+    });
+  });
+  mostrarVistaPrincipal(location.hash === "#actividades" ? "actividades" : "catalogo", false);
+}
+
+function inicializarInterfazActividades() {
+  document.querySelectorAll(".actividad-tab").forEach((boton) => {
+    boton.addEventListener("click", () => activarVistaActividades(boton.dataset.vista));
+  });
+  $("#form-actividad [name='fecha']").min = new Date().toISOString().slice(0, 10);
+
+  $("#usar-ubicacion").addEventListener("click", () => {
+    if (!navigator.geolocation) {
+      $("#estado-ubicacion").textContent = "Tu navegador no permite obtener la ubicación; selecciónala en el mapa.";
+      return;
+    }
+    navigator.geolocation.getCurrentPosition((posicion) => {
+      const punto = { lat: posicion.coords.latitude, lng: posicion.coords.longitude };
+      mapaPublicar?.setView(punto, 15);
+      ponerUbicacionActividad(punto);
+    }, () => {
+      $("#estado-ubicacion").textContent = "No se obtuvo permiso de ubicación; selecciónala directamente en el mapa.";
+    }, { enableHighAccuracy: true, timeout: 10000 });
+  });
+
+  ["#lista-actividades", "#lista-mias"].forEach((selector) => {
+    $(selector).addEventListener("click", (e) => {
+      const boton = e.target.closest(".actividad-resumen");
+      if (!boton) return;
+      const actividad = [...actividadesAbiertas, ...misActividades].find((item) => item.id === boton.dataset.id);
+      if (actividad) abrirDetalleActividad(actividad);
+    });
+  });
+
+  $("#detalle-actividad").addEventListener("click", async (e) => {
+    const dialogo = e.currentTarget;
+    if (e.target.closest(".detalle-cerrar")) {
+      dialogo.close();
+      return;
+    }
+    const botonReclamo = e.target.closest(".reclamar-actividad");
+    if (botonReclamo && !botonReclamo.disabled) {
+      const actividad = actividadesAbiertas.find((item) => item.id === botonReclamo.dataset.id);
+      if (actividad && actividad.creadorId !== usuarioActual?.uid) {
+        dialogo.close();
+        abrirFormularioReclamo(actividad);
+      }
+      return;
+    }
+    const botonVerReclamos = e.target.closest(".ver-reclamos-detalle");
+    if (botonVerReclamos) {
+      try { await cargarReclamosActividad(botonVerReclamos.dataset.id, "#detalle-reclamos-actividad"); }
+      catch (error) {
+        console.error(error);
+        $("#detalle-reclamos-actividad").textContent = "No se pudieron cargar los reclamos.";
+      }
+      return;
+    }
+    const botonEstado = e.target.closest(".cambiar-estado-actividad");
+    if (botonEstado) {
+      const actividad = misActividades.find((item) => item.id === botonEstado.dataset.id);
+      if (actividad) {
+        await cambiarEstadoActividad(actividad, actividad.estado === "abierta" ? "cerrada" : "abierta");
+        dialogo.close();
+      }
+    }
+  });
+
+  $("#form-actividad").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const form = e.currentTarget;
+    const data = new FormData(form);
+    const mensaje = $("#mensaje-actividad");
+    const boton = form.querySelector("button[type=submit]");
+    const categorias = data.getAll("categorias");
+    if (!usuarioActual) {
+      mensaje.textContent = "Espera a que se conecte tu sesión de invitado.";
+      return;
+    }
+    if (categorias.length === 0) {
+      mensaje.textContent = "Selecciona al menos una categoría de árbol.";
+      return;
+    }
+    if (!ubicacionActividad) {
+      mensaje.textContent = "Selecciona el punto de tala en el mapa.";
+      $("#estado-ubicacion").focus?.();
+      return;
+    }
+    boton.disabled = true;
+    mensaje.textContent = "Publicando actividad...";
+    try {
+      await publicarActividad({
+        empresa: data.get("empresa").trim(),
+        titulo: data.get("titulo").trim(),
+        categorias,
+        fecha: data.get("fecha"),
+        descripcion: data.get("descripcion").trim(),
+        latitud: ubicacionActividad.latitud,
+        longitud: ubicacionActividad.longitud,
+        creadorId: usuarioActual.uid,
+        estado: "abierta"
+      });
+      form.reset();
+      ubicacionActividad = null;
+      marcadorUbicacionActividad?.remove();
+      marcadorUbicacionActividad = null;
+      $("#estado-ubicacion").textContent = "Selecciona el punto exacto en el mapa.";
+      mensaje.textContent = "Actividad publicada. Ya aparece en el mapa.";
+      activarVistaActividades("mias");
+    } catch (error) {
+      console.error(error);
+      mensaje.textContent = error.message || "No se pudo publicar la actividad.";
+    } finally {
+      boton.disabled = false;
+    }
+  });
+
+  $("#form-reclamo").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const form = e.currentTarget;
+    const data = new FormData(form);
+    const boton = form.querySelector("button[type=submit]");
+    const mensaje = $("#mensaje-reclamo");
+    boton.disabled = true;
+    mensaje.textContent = "Enviando interés...";
+    try {
+      await enviarReclamo(data.get("actividadId"), {
+        nombre: data.get("nombre").trim(),
+        contacto: data.get("contacto").trim(),
+        mensaje: data.get("mensaje").trim()
+      });
+      $("#dialogo-reclamo").close();
+      mensaje.textContent = "";
+    } catch (error) {
+      console.error(error);
+      mensaje.textContent = error.message || "No se pudo enviar el reclamo.";
+    } finally {
+      boton.disabled = false;
+    }
+  });
+
+  document.querySelectorAll(".form-cerrar").forEach((boton) => {
+    boton.addEventListener("click", () => boton.closest("dialog")?.close());
+  });
+}
+
+async function iniciarAlmacenamiento() {
+  inicializarInterfazActividades();
+  if (MODO_DEMO) {
+    let uidDemo = localStorage.getItem("rootloop_usuario_demo");
+    if (!uidDemo) {
+      uidDemo = `demo-${crypto.randomUUID()}`;
+      localStorage.setItem("rootloop_usuario_demo", uidDemo);
+    }
+    usuarioActual = { uid: uidDemo };
+    $("#estado-cuenta-actividades").textContent = "Modo de prueba: esta cuenta solo existe en este navegador.";
     const guardados = JSON.parse(localStorage.getItem("arboles_comunidad") || "[]");
     arboles = [...ARBOLES_BASE, ...guardados];
     render();
+    escucharActividades();
     mostrarMensaje("Modo demo: los aportes se guardan solo en este navegador. Configura Firebase en app.js.", "ok");
     return;
   }
 
   const base = "https://www.gstatic.com/firebasejs/10.12.0";
-  const [{ initializeApp }, firestore] = await Promise.all([
+  const [{ initializeApp }, firestore, firebaseAuth] = await Promise.all([
     import(`${base}/firebase-app.js`),
-    import(`${base}/firebase-firestore.js`)
+    import(`${base}/firebase-firestore.js`),
+    import(`${base}/firebase-auth.js`)
   ]);
-  const db = firestore.getFirestore(initializeApp(firebaseConfig));
+  const app = initializeApp(firebaseConfig);
+  const db = firestore.getFirestore(app);
   fb = { db, ...firestore };
+  authSdk = firebaseAuth;
+  auth = firebaseAuth.getAuth(app);
+  escucharActividades();
+
+  firebaseAuth.onAuthStateChanged(auth, (usuario) => {
+    usuarioActual = usuario;
+    if (!usuario) {
+      $("#estado-cuenta-actividades").textContent = "Iniciando sesión de invitado...";
+      return;
+    }
+    $("#estado-cuenta-actividades").textContent = "Sesión de invitado activa. Puedes publicar o reclamar actividades.";
+    escucharActividades();
+  }, (error) => {
+    console.error(error);
+    $("#estado-cuenta-actividades").textContent = "No se pudo iniciar sesión. Activa el proveedor Anónimo en Firebase Authentication.";
+  });
+
+  if (!auth.currentUser) {
+    firebaseAuth.signInAnonymously(auth).catch((error) => {
+      console.error(error);
+      $("#estado-cuenta-actividades").textContent = "Activa el proveedor Anónimo en Firebase Authentication para usar actividades.";
+    });
+  }
 
   const consulta = fb.collection(db, COLECCION);
   fb.onSnapshot(consulta, (snap) => {
@@ -799,5 +1277,6 @@ $("#form-arbol").addEventListener("submit", async (e) => {
 });
 
 // ---------- inicio ----------
+inicializarNavegacionPrincipal();
 render();
 iniciarAlmacenamiento();

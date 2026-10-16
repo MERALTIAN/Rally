@@ -4,28 +4,93 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Árboles que dan vida | Biomasa urbana</title>
-  <link rel="stylesheet" href="styles.css?v=18">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <link rel="stylesheet" href="styles.css?v=25">
 </head>
 <body>
 
   <header class="hero">
     <nav class="nav">
       <span class="logo"><img src="imagenes/rootloop-logo.svg?v=2" alt=""><span>RootLoop</span></span>
-      <a href="#catalogo">Catálogo</a>
+      <a href="#catalogo" data-vista-principal="catalogo" aria-current="page">Catálogo</a>
+      <a href="#actividades" data-vista-principal="actividades">Actividades</a>
       <button id="abrir-aporte" class="nav-action" type="button">Aportar un árbol</button>
     </nav>
     <div class="hero-text">
       <h1>La poda no es basura: es recurso</h1>
       <p>Conoce los árboles de tu ciudad y descubre cómo reutilizar sus hojas, ramas y frutos para que la biomasa vuelva al suelo, a la biodiversidad y a la comunidad.</p>
-      <a class="btn" href="#catalogo">Explorar árboles</a>
+      <a class="btn" href="#catalogo" data-vista-principal="catalogo">Explorar árboles</a>
     </div>
   </header>
 
-  <section class="stats">
+  <section class="stats" id="estadisticas">
     <div><strong id="stat-total">0</strong><span>árboles registrados</span></div>
     <div><strong id="stat-medicinal">0</strong><span>con uso medicinal tradicional</span></div>
     <div><strong id="stat-usuarios">0</strong><span>aportes de la comunidad</span></div>
   </section>
+
+  <section id="actividades" class="section actividad-section" hidden>
+    <div class="actividad-encabezado">
+      <div>
+        <p class="actividad-eyebrow">Biomasa urbana en acción</p>
+        <h2>Rescate de árboles y biomasa</h2>
+        <p class="sub">Publica una tala programada o encuentra una actividad para aprovechar sus árboles.</p>
+      </div>
+      <p id="estado-cuenta-actividades" class="estado-cuenta" role="status">Conectando como invitado...</p>
+    </div>
+    <div class="actividad-tabs" role="tablist" aria-label="Secciones de actividades">
+      <button class="actividad-tab activo" type="button" role="tab" aria-selected="true" data-vista="explorar">Explorar actividades</button>
+      <button class="actividad-tab" type="button" role="tab" aria-selected="false" data-vista="publicar">Publicar actividad</button>
+      <button class="actividad-tab" type="button" role="tab" aria-selected="false" data-vista="mias">Mis actividades</button>
+    </div>
+    <div id="vista-explorar" class="actividad-vista" role="tabpanel">
+      <div class="actividades-explorar">
+        <div id="mapa-actividades" class="mapa-actividades" aria-label="Mapa de actividades de tala abiertas"></div>
+        <div class="actividades-listado">
+          <div class="listado-encabezado"><h3>Actividades abiertas</h3><span id="cuenta-actividades">0</span></div>
+          <div id="lista-actividades" class="lista-actividades"></div>
+          <p id="sin-actividades" class="vacio">Todavía no hay actividades abiertas.</p>
+        </div>
+      </div>
+    </div>
+    <div id="vista-publicar" class="actividad-vista" role="tabpanel" hidden>
+      <form id="form-actividad" class="form formulario-actividad">
+        <label>Empresa u organización *<input name="empresa" required maxlength="100" placeholder="Nombre de la empresa u organización"></label>
+        <label>Nombre de la actividad *<input name="titulo" required maxlength="100" placeholder="Ej. Retiro de árboles por obra vial"></label>
+        <fieldset class="categorias-arbol-form">
+          <legend>Tipo de árbol * (puedes elegir varias categorías)</legend>
+          <div class="checks">
+            <label><input type="checkbox" name="categorias" value="frutal"> 🍎 Frutal</label>
+            <label><input type="checkbox" name="categorias" value="floral"> 🌸 Floral</label>
+            <label><input type="checkbox" name="categorias" value="medicinal"> 🌿 Medicinal</label>
+            <label><input type="checkbox" name="categorias" value="sombra"> ⛱️ Sombra</label>
+            <label><input type="checkbox" name="categorias" value="forraje"> 🐄 Forraje / abono</label>
+            <label><input type="checkbox" name="categorias" value="desechos"> ♻️ Desechos</label>
+          </div>
+        </fieldset>
+        <label>Fecha programada *<input name="fecha" type="date" required></label>
+        <label>Descripción *<textarea name="descripcion" required maxlength="800" rows="4" placeholder="Describe la tala, el volumen estimado y cómo se entregará la biomasa."></textarea></label>
+        <div class="ubicacion-editor">
+          <div class="ubicacion-encabezado">
+            <div><strong>Ubicación de la actividad *</strong><p id="estado-ubicacion">Selecciona el punto exacto en el mapa.</p></div>
+            <button id="usar-ubicacion" class="btn-secundario" type="button">Usar mi ubicación</button>
+          </div>
+          <div id="mapa-publicacion" class="mapa-publicacion" aria-label="Seleccionar la ubicación de la actividad"></div>
+          <input name="latitud" type="hidden" required>
+          <input name="longitud" type="hidden" required>
+        </div>
+        <button class="btn" type="submit">Publicar actividad</button>
+        <p id="mensaje-actividad" class="msg" role="status"></p>
+      </form>
+    </div>
+    <div id="vista-mias" class="actividad-vista" role="tabpanel" hidden>
+      <div class="listado-encabezado"><h3>Publicadas por esta cuenta</h3><span id="cuenta-mias">0</span></div>
+      <div id="lista-mias" class="lista-actividades"></div>
+      <p id="sin-mias" class="vacio">Todavía no has publicado actividades.</p>
+    </div>
+  </section>
+
+  <dialog id="detalle-actividad" class="detalle-modal" aria-labelledby="detalle-actividad-titulo"></dialog>
 
   <section id="catalogo" class="section">
     <h2>Catálogo de árboles</h2>
@@ -136,10 +201,28 @@
     </div>
   </dialog>
 
+  <dialog id="dialogo-reclamo" class="form-modal" aria-labelledby="titulo-reclamo">
+    <div class="form-modal-inner">
+      <button class="form-cerrar" type="button" aria-label="Cerrar reclamo">Cerrar</button>
+      <h2 id="titulo-reclamo">Reclamar esta actividad</h2>
+      <p id="actividad-reclamo-nombre" class="sub"></p>
+      <p>La empresa u organización verá estos datos para contactarte.</p>
+      <form id="form-reclamo" class="form">
+        <input name="actividadId" type="hidden">
+        <label>Tu nombre *<input name="nombre" required maxlength="80" placeholder="Nombre y apellido"></label>
+        <label>Teléfono o correo de contacto *<input name="contacto" required maxlength="120" placeholder="Cómo pueden contactarte"></label>
+        <label>Mensaje (opcional)<textarea name="mensaje" maxlength="400" rows="3" placeholder="Cuéntale a la organización cómo te interesa participar."></textarea></label>
+        <button class="btn" type="submit">Enviar reclamo</button>
+        <p id="mensaje-reclamo" class="msg" role="status"></p>
+      </form>
+    </div>
+  </dialog>
+
   <footer>
     <p>La información sobre usos medicinales se basa en prácticas tradicionales y tiene fines únicamente informativos. No constituye una recomendación médica ni sustituye la consulta con un profesional de la salud.</p>
   </footer>
 
-  <script type="module" src="app.js?v=12"></script>
+  <script type="module" src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script type="module" src="app.js?v=19"></script>
 </body>
 </html>

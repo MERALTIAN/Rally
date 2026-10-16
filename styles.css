@@ -50,6 +50,7 @@ h1, h2, h3 { font-family: Georgia, "Times New Roman", serif; line-height: 1.2; }
   cursor: pointer;
 }
 .nav a:hover, .nav-action:hover { opacity: 1; text-decoration: underline; }
+.nav a.activo { opacity: 1; text-decoration: underline; text-decoration-color: #f2b84b; text-underline-offset: 6px; }
 .nav-action:focus-visible { outline: 2px solid #f2b84b; outline-offset: 5px; }
 
 .hero-text { max-width: 1100px; margin: 60px auto 0; }
@@ -93,10 +94,64 @@ h1, h2, h3 { font-family: Georgia, "Times New Roman", serif; line-height: 1.2; }
 
 /* Secciones */
 .section { max-width: 1100px; margin: 0 auto; padding: 60px 20px; }
+.section[hidden], .stats[hidden] { display: none; }
 .section.alt { max-width: none; background: var(--verde-claro); }
 .section.alt > * { max-width: 640px; margin-left: auto; margin-right: auto; }
 .section h2 { font-size: 2rem; margin: 0 0 16px; color: var(--verde); }
 .sub { color: var(--gris); }
+
+.actividad-section { border-top: 1px solid var(--borde); }
+.actividad-encabezado { display: flex; align-items: end; justify-content: space-between; gap: 24px; margin-bottom: 24px; }
+.actividad-eyebrow { margin: 0 0 6px; color: var(--tierra); font-size: .78rem; font-weight: 700; text-transform: uppercase; }
+.actividad-encabezado h2 { margin-bottom: 8px; }
+.actividad-encabezado .sub { max-width: 60ch; margin: 0; }
+.estado-cuenta { max-width: 240px; margin: 0; color: var(--gris); font-size: .85rem; text-align: right; }
+.actividad-tabs { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 20px; border-bottom: 1px solid var(--borde); }
+.actividad-tab { padding: 11px 15px; color: var(--gris); background: transparent; border: 0; border-bottom: 3px solid transparent; font: inherit; cursor: pointer; }
+.actividad-tab:hover { color: var(--verde); }
+.actividad-tab.activo { color: var(--verde); border-bottom-color: var(--verde); font-weight: 700; }
+.actividad-vista[hidden] { display: none; }
+.actividades-explorar { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(280px, .75fr); gap: 24px; align-items: start; }
+.mapa-actividades, .mapa-publicacion { width: 100%; min-width: 0; height: 460px; overflow: hidden; background: #e8eee4; border: 1px solid var(--borde); border-radius: 8px; z-index: 0; }
+.mapa-publicacion { height: 340px; }
+.actividades-listado { min-width: 0; }
+.listado-encabezado { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
+.listado-encabezado h3 { margin: 0; color: var(--verde); font-size: 1.25rem; }
+.listado-encabezado > span { color: var(--gris); font-size: .9rem; }
+.lista-actividades { display: grid; }
+.actividad-item { display: grid; border-bottom: 1px solid var(--borde); }
+.actividad-resumen { width: 100%; display: grid; gap: 8px; padding: 15px 10px; color: var(--texto); background: transparent; border: 0; border-radius: 7px; font: inherit; text-align: left; cursor: pointer; transition: background-color .16s ease; }
+.actividad-resumen:hover, .actividad-resumen:focus-visible { background: #f0f5ed; }
+.actividad-resumen:focus-visible { outline: 2px solid var(--verde); outline-offset: 1px; }
+.actividad-resumen-titulo { color: var(--verde); font-family: Georgia, "Times New Roman", serif; font-size: 1.15rem; font-weight: 700; }
+.actividad-resumen-hint { color: var(--tierra); font-size: .82rem; }
+.actividad-item p { margin: 0; font-size: .93rem; }
+.actividad-meta { display: flex; flex-wrap: wrap; gap: 6px 14px; color: var(--gris); font-size: .82rem; }
+.actividad-item .btn-secundario { justify-self: start; }
+.actividad-acciones { display: flex; flex-wrap: wrap; gap: 8px; }
+.reclamos-actividad { display: grid; gap: 8px; padding: 12px; background: #f1f6ee; border-radius: 7px; }
+.reclamos-actividad[hidden] { display: none; }
+.reclamo-mensaje { padding-bottom: 8px; border-bottom: 1px solid var(--borde); overflow-wrap: anywhere; }
+.reclamo-mensaje:last-child { padding-bottom: 0; border-bottom: 0; }
+.reclamo-mensaje p { margin-top: 4px; }
+.formulario-actividad { max-width: 760px; }
+.categorias-arbol-form { display: grid; gap: 10px; margin: 0; padding: 14px; border: 1px solid var(--borde); border-radius: 8px; background: #f4f7f1; }
+.categorias-arbol-form legend { padding: 0 5px; color: var(--texto); font-weight: 700; }
+.categorias-arbol-form .checks { gap: 8px 16px; }
+.ubicacion-editor { display: grid; gap: 10px; min-width: 0; }
+.ubicacion-encabezado { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.ubicacion-encabezado p { margin: 3px 0 0; color: var(--gris); font-size: .9rem; }
+.ubicacion-encabezado .btn-secundario { flex-shrink: 0; }
+.mapa-aviso { margin: 0; padding: 14px; color: var(--gris); background: #f1f6ee; border-radius: 7px; }
+.reclamo-mensaje { color: var(--gris); font-size: .9rem; }
+.marcador-actividad { width: 30px; height: 38px; display: grid; place-items: center; color: #fff; background: var(--verde); border: 2px solid #fff; border-radius: 50% 50% 50% 4px; box-shadow: 0 2px 8px rgba(0, 0, 0, .28); font-size: 15px; transform: rotate(-45deg); }
+.marcador-actividad span { transform: rotate(45deg); }
+.leaflet-popup-content { min-width: 150px; }
+.detalle-cuerpo-actividad { gap: 12px; }
+.detalle-cuerpo-actividad h3 { margin: 0; color: var(--verde); font-size: 1.65rem; }
+.detalle-cuerpo-actividad > p { margin: 0; }
+.actividad-enlace-mapa { justify-self: start; color: var(--verde); font-weight: 600; text-decoration-thickness: 1px; text-underline-offset: 3px; }
+.actividad-enlace-mapa:hover { color: var(--tierra); }
 
 /* Filtros */
 .controls { display: flex; flex-direction: column; gap: 14px; margin-bottom: 24px; }
@@ -345,12 +400,19 @@ footer { text-align: center; padding: 30px 20px; color: var(--gris); font-size: 
   .form-modal { max-height: calc(100dvh - 20px); width: calc(100vw - 20px); }
   .form-modal-inner { padding: 18px; }
   .form-modal h2 { font-size: 1.5rem; }
+  .actividad-encabezado { align-items: start; flex-direction: column; gap: 8px; }
+  .estado-cuenta { max-width: none; text-align: left; }
+  .actividades-explorar { grid-template-columns: 1fr; }
+  .mapa-actividades { height: 340px; }
 }
 
 @media (max-width: 520px) {
   .uso-parte-fila { grid-template-columns: minmax(0, 1fr) auto; }
   .uso-parte-fila label:nth-child(2) { grid-column: 1 / -1; grid-row: 2; }
   .uso-eliminar { grid-column: 2; grid-row: 1; }
+  .actividad-tab { flex: 1 1 auto; padding: 10px 8px; font-size: .9rem; }
+  .ubicacion-encabezado { align-items: start; flex-direction: column; }
+  .mapa-publicacion { height: 280px; }
 }
 
 @keyframes crecer-modal {
