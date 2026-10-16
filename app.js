@@ -26,57 +26,109 @@ const CATEGORIAS = {
   floral: "🌸 Floral",
   medicinal: "🌿 Medicinal",
   sombra: "⛱️ Sombra",
-  forraje: "🐄 Forraje / abono",
-  desechos: "♻️ Desechos"
+  forraje: "🐄 Forraje / abono"
 };
+
+const ALTURAS = {
+  pequeno: "🌱 Pequeño",
+  mediano: "🌳 Mediano",
+  alto: "🌲 Alto"
+};
+
+function convertirAlturaAMetros(valor, unidad) {
+  const numero = Number(valor);
+  if (!Number.isFinite(numero) || numero <= 0) return null;
+  const metros = unidad === "cm" ? numero / 100 : numero;
+  return metros <= 200 ? metros : null;
+}
+
+function clasificarAltura(metros) {
+  if (!Number.isFinite(metros) || metros <= 0 || metros > 200) return null;
+  if (metros <= 5) return "pequeno";
+  if (metros <= 15) return "mediano";
+  return "alto";
+}
+
+function mostrarClasificacionAltura(valor, unidad, salida) {
+  const metros = convertirAlturaAMetros(valor, unidad);
+  const categoria = clasificarAltura(metros);
+  salida.textContent = categoria
+    ? `Clasificación: ${ALTURAS[categoria]} · ${metros.toLocaleString("es", { maximumFractionDigits: 2 })} m`
+    : "Ingresa una altura mayor que 0 y hasta 200 m.";
+  salida.classList.toggle("altura-invalida", !categoria && Boolean(valor));
+  return { metros, categoria };
+}
+
+function conectarControlAltura(formulario, nombreMedida, nombreUnidad, selectorSalida) {
+  const form = $(formulario);
+  const medida = form.querySelector(`[name='${nombreMedida}']`);
+  const unidad = form.querySelector(`[name='${nombreUnidad}']`);
+  const salida = $(selectorSalida);
+  const actualizar = () => mostrarClasificacionAltura(medida.value, unidad.value, salida);
+  form.addEventListener("input", (evento) => {
+    if (evento.target === medida || evento.target === unidad) actualizar();
+  });
+  form.addEventListener("change", (evento) => {
+    if (evento.target === medida || evento.target === unidad) actualizar();
+  });
+  form.addEventListener("reset", () => requestAnimationFrame(actualizar));
+}
 
 // Árboles de ejemplo (siempre visibles). Los usos medicinales son tradicionales.
 const ARBOLES_BASE = [
   {
     nombre: "Neem", cientifico: "Azadirachta indica",
     categorias: ["medicinal", "sombra"],
+    altura: "alto", alturaMetros: 18,
     descripcion: "Árbol de crecimiento rápido, resistente a la sequía y con buena sombra.",
     usos: "Las hojas trituradas van al compost o se usan para preparar un biopesticida casero. Tradicionalmente se usa en infusiones y lavados. Las ramas sirven de leña."
   },
   {
     nombre: "Guanábana", cientifico: "Annona muricata",
     categorias: ["frutal", "medicinal"],
+    altura: "pequeno", alturaMetros: 4,
     descripcion: "Árbol pequeño de hojas brillantes que da frutos grandes y aromáticos.",
     usos: "El fruto se aprovecha en refrescos y helados. Las hojas se usan tradicionalmente en infusión, y las hojas secas pueden ir al compost."
   },
   {
     nombre: "Moringa", cientifico: "Moringa oleifera",
     categorias: ["medicinal", "forraje"],
+    altura: "mediano", alturaMetros: 8,
     descripcion: "Árbol de rápido rebrote que tolera podas frecuentes, con hojas pequeñas y nutritivas.",
     usos: "La poda genera mucha biomasa verde para forraje y abono. Las hojas se consumen frescas o secas y las semillas se usan para clarificar agua de forma tradicional."
   },
   {
     nombre: "Madero negro", cientifico: "Gliricidia sepium",
     categorias: ["forraje", "floral"],
+    altura: "mediano", alturaMetros: 10,
     descripcion: "Árbol que se usa como cerco vivo y que florece de rosado en la época seca.",
     usos: "Su follaje, rico en nitrógeno, sirve de abono verde y forraje. Las ramas se usan como estacas para nuevos cercos y como leña."
   },
   {
     nombre: "Cortez amarillo", cientifico: "Tabebuia ochracea",
     categorias: ["floral", "sombra"],
+    altura: "alto", alturaMetros: 18,
     descripcion: "Árbol que cubre su copa de flores amarillas al final de la época seca.",
     usos: "Las flores y hojas caídas se pueden compostar o dejar como cobertura (mulch) bajo el árbol. Las ramas gruesas se astillan para acolchar parques y jardines."
   },
   {
     nombre: "Mango", cientifico: "Mangifera indica",
     categorias: ["frutal", "sombra"],
+    altura: "alto", alturaMetros: 20,
     descripcion: "Árbol grande y frondoso, muy común en patios y calles.",
     usos: "Además del fruto, las ramas podadas se astillan para mulch o leña. Sus hojas son coriáceas y tardan en descomponerse, por lo que conviene triturarlas antes de compostarlas."
   },
   {
     nombre: "Guácimo", cientifico: "Guazuma ulmifolia",
     categorias: ["forraje", "sombra", "medicinal"],
+    altura: "alto", alturaMetros: 18,
     descripcion: "Árbol de copa amplia, común en potreros y zonas secas.",
     usos: "Hojas y frutos se usan como forraje para el ganado. La corteza y las hojas tienen usos tradicionales en infusión. La poda se composta o se astilla."
   },
   {
     nombre: "Malinche", cientifico: "Delonix regia",
     categorias: ["floral", "sombra"],
+    altura: "mediano", alturaMetros: 10,
     descripcion: "Árbol de copa en forma de sombrilla con flores rojo intenso.",
     usos: "Sus hojas pequeñas se descomponen rápido y mejoran el compost. Las flores caídas sirven de cobertura y las vainas secas, de leña."
   }
@@ -100,6 +152,7 @@ let uidEscuchadoActividades = null;
 let mapaExplorar = null;
 let capaActividades = null;
 let mapaPublicar = null;
+let mapaDetalleActividad = null;
 let marcadorUbicacionActividad = null;
 let ubicacionActividad = null;
 
@@ -126,6 +179,19 @@ function emojiDe(arbol) {
 
 function claveArbol(arbol, indice) {
   return arbol.id ? `comunidad-${arbol.id}` : `base-${indice}`;
+}
+
+function htmlEtiquetasArbol(arbol) {
+  const categorias = (arbol.categorias || [])
+    .filter((categoria) => CATEGORIAS[categoria])
+    .map((categoria) => `<span class="etiqueta">${CATEGORIAS[categoria]}</span>`);
+  if (ALTURAS[arbol.altura]) {
+    const medida = Number.isFinite(Number(arbol.alturaMetros))
+      ? ` · ${Number(arbol.alturaMetros).toLocaleString("es", { maximumFractionDigits: 2 })} m`
+      : "";
+    categorias.push(`<span class="etiqueta etiqueta-altura">${ALTURAS[arbol.altura]}${medida}</span>`);
+  }
+  return categorias.join("");
 }
 
 function renderUsosPartes(arbol, clave) {
@@ -167,16 +233,10 @@ function renderUsosPartes(arbol, clave) {
 
 function renderTipoUsos(arbol) {
   const tipos = Array.isArray(arbol.tiposUso) ? arbol.tiposUso : [];
-  const contenido = [
-    { valor: "desechos", titulo: "Desechos / aprovechamiento", detalle: arbol.usoDesechos },
-    { valor: "medicinal", titulo: "Uso medicinal tradicional", detalle: arbol.usoMedicinal }
-  ].filter((tipo) => tipos.includes(tipo.valor)).map((tipo) =>
-    `<p><span>${tipo.titulo}:</span> ${esc(tipo.detalle || "Sin detalle agregado.")}</p>`
-  ).join("");
-
-  return `<section class="clasificacion-usos" aria-label="Desechos y uso medicinal">
-    <strong>Desechos y uso medicinal</strong>
-    ${contenido || `<p class="usos-sin-detalle">Aún no se ha indicado si este árbol tiene usos de aprovechamiento o medicinales.</p>`}
+  if (!tipos.includes("medicinal") && !arbol.usoMedicinal) return "";
+  return `<section class="clasificacion-usos" aria-label="Uso medicinal tradicional">
+    <strong>Uso medicinal tradicional</strong>
+    <p>${esc(arbol.usoMedicinal || "Sin detalle agregado.")}</p>
   </section>`;
 }
 
@@ -193,9 +253,7 @@ function renderDetalle(arbol, clave) {
   }
 
   const foto = fotoSegura(arbol.foto);
-  const etiquetas = (arbol.categorias || [])
-    .filter((categoria) => CATEGORIAS[categoria])
-    .map((categoria) => `<span class="etiqueta">${CATEGORIAS[categoria]}</span>`).join("");
+  const etiquetas = htmlEtiquetasArbol(arbol);
   panel.innerHTML = `
     <button class="detalle-cerrar" type="button" aria-label="Cerrar detalle">Cerrar</button>
     <div class="detalle-foto">${foto ? `<img src="${foto}" alt="Foto de ${esc(arbol.nombre || "árbol")}">` : emojiDe(arbol)}</div>
@@ -258,18 +316,19 @@ function render() {
     ...arbol,
     claveVista: claveArbol(arbol, indice)
   })).filter((a) => {
-    const coincideCat = categoriaActiva === "todas" || (a.categorias || []).includes(categoriaActiva);
+    const filtroAltura = categoriaActiva.startsWith("altura-") ? categoriaActiva.slice("altura-".length) : null;
+    const coincideCat = categoriaActiva === "todas" ||
+      (filtroAltura ? a.altura === filtroAltura : (a.categorias || []).includes(categoriaActiva));
     const otrosUsos = (a.usosPartes || []).map((item) => `${item.parte} ${item.descripcion}`).join(" ");
-    const tiposUso = `${(a.tiposUso || []).join(" ")} ${a.usoDesechos || ""} ${a.usoMedicinal || ""}`;
-    const texto = `${a.nombre || ""} ${a.cientifico || ""} ${a.descripcion || ""} ${a.usos || ""} ${otrosUsos} ${tiposUso}`.toLowerCase();
+    const tiposUso = `${(a.tiposUso || []).filter((tipo) => tipo === "medicinal").join(" ")} ${a.usoMedicinal || ""}`;
+    const altura = ALTURAS[a.altura] || "";
+    const texto = `${a.nombre || ""} ${a.cientifico || ""} ${a.descripcion || ""} ${a.usos || ""} ${otrosUsos} ${tiposUso} ${altura}`.toLowerCase();
     return coincideCat && (!q || texto.includes(q));
   });
 
   $("#lista").innerHTML = visibles.map((a) => {
     const foto = fotoSegura(a.foto);
-    const etiquetas = (a.categorias || [])
-      .filter((c) => CATEGORIAS[c])
-      .map((c) => `<span class="etiqueta">${CATEGORIAS[c]}</span>`).join("");
+    const etiquetas = htmlEtiquetasArbol(a);
     return `
       <article class="card" data-tree-id="${esc(a.claveVista)}" tabindex="0" role="button" aria-haspopup="dialog">
         <div class="foto">${foto ? `<img src="${foto}" alt="Foto de ${esc(a.nombre)}" loading="lazy">` : emojiDe(a)}</div>
@@ -434,11 +493,17 @@ function formatoFecha(fecha) {
   return new Intl.DateTimeFormat("es", { dateStyle: "long" }).format(new Date(anio, mes - 1, dia));
 }
 
-function htmlCategoriasActividad(categorias) {
-  return (Array.isArray(categorias) ? categorias : [])
+function htmlCategoriasActividad(categorias, altura, alturaMetros) {
+  const etiquetas = (Array.isArray(categorias) ? categorias : [])
     .filter((categoria) => CATEGORIAS[categoria])
-    .map((categoria) => `<span class="etiqueta">${CATEGORIAS[categoria]}</span>`)
-    .join("");
+    .map((categoria) => `<span class="etiqueta">${CATEGORIAS[categoria]}</span>`);
+  if (ALTURAS[altura]) {
+    const medida = Number.isFinite(Number(alturaMetros))
+      ? ` · ${Number(alturaMetros).toLocaleString("es", { maximumFractionDigits: 2 })} m`
+      : "";
+    etiquetas.push(`<span class="etiqueta etiqueta-altura">${ALTURAS[altura]}${medida}</span>`);
+  }
+  return etiquetas.join("");
 }
 
 function iniciarMapaExplorar() {
@@ -472,13 +537,15 @@ function abrirDetalleActividad(actividad) {
       </div>
       <div id="detalle-reclamos-actividad" class="reclamos-actividad" hidden></div>`
     : `<button class="btn-secundario reclamar-actividad" type="button" data-id="${esc(actividad.id)}" ${reclamada || !usuarioActual ? "disabled" : ""}>${reclamada ? "Ya enviaste tu interés" : "Me interesa reclamar"}</button>`;
-  const categorias = htmlCategoriasActividad(actividad.categorias);
+  const categorias = htmlCategoriasActividad(actividad.categorias, actividad.altura, actividad.alturaMetros);
   const latitud = Number(actividad.latitud);
   const longitud = Number(actividad.longitud);
-  const enlaceMapa = Number.isFinite(latitud) && Number.isFinite(longitud)
-    ? `<a class="actividad-enlace-mapa" href="https://www.openstreetmap.org/?mlat=${latitud}&mlon=${longitud}#map=16/${latitud}/${longitud}" target="_blank" rel="noopener noreferrer">Ver punto en OpenStreetMap</a>`
-    : "";
+  const mapaDetalle = Number.isFinite(latitud) && Number.isFinite(longitud)
+    ? `<div id="mapa-detalle-actividad" class="mapa-detalle-actividad" aria-label="Mapa con la ubicación de la tala"></div>`
+    : `<p>Ubicación no disponible.</p>`;
   const dialogo = $("#detalle-actividad");
+  mapaDetalleActividad?.remove();
+  mapaDetalleActividad = null;
   dialogo.innerHTML = `
     <button class="detalle-cerrar" type="button" aria-label="Cerrar actividad">Cerrar</button>
     <div class="detalle-cuerpo detalle-cuerpo-actividad">
@@ -487,10 +554,24 @@ function abrirDetalleActividad(actividad) {
       <div class="actividad-meta"><span>${esc(actividad.empresa)}</span><span>${esc(formatoFecha(actividad.fecha))}</span></div>
       ${categorias ? `<div class="etiquetas">${categorias}</div>` : actividad.especies ? `<p><strong>Especies:</strong> ${esc(actividad.especies)}</p>` : `<p>Tipo de árbol no especificado.</p>`}
       <p>${esc(actividad.descripcion)}</p>
-      ${enlaceMapa}
+      ${mapaDetalle}
       ${acciones}
     </div>`;
   if (!dialogo.open) dialogo.showModal();
+  if (Number.isFinite(latitud) && Number.isFinite(longitud)) {
+    requestAnimationFrame(() => {
+      const elementoMapa = $("#mapa-detalle-actividad");
+      if (!elementoMapa || !window.L) return;
+      const punto = [latitud, longitud];
+      mapaDetalleActividad = L.map(elementoMapa, { scrollWheelZoom: false }).setView(punto, 15);
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        maxZoom: 19,
+        attribution: "&copy; OpenStreetMap contributors"
+      }).addTo(mapaDetalleActividad);
+      L.marker(punto).addTo(mapaDetalleActividad);
+      mapaDetalleActividad.invalidateSize();
+    });
+  }
 }
 
 function abrirFormularioReclamo(actividad) {
@@ -534,7 +615,7 @@ function renderMarcadoresActividades() {
 }
 
 function htmlActividad(actividad) {
-  const categorias = htmlCategoriasActividad(actividad.categorias);
+  const categorias = htmlCategoriasActividad(actividad.categorias, actividad.altura, actividad.alturaMetros);
   return `<article class="actividad-item">
     <button class="actividad-resumen" type="button" data-id="${esc(actividad.id)}" aria-haspopup="dialog">
       <span class="actividad-resumen-titulo">${esc(actividad.titulo)}</span>
@@ -698,7 +779,12 @@ function inicializarInterfazActividades() {
   document.querySelectorAll(".actividad-tab").forEach((boton) => {
     boton.addEventListener("click", () => activarVistaActividades(boton.dataset.vista));
   });
+  conectarControlAltura("#form-actividad", "alturaActividadValor", "alturaActividadUnidad", "#altura-actividad-clasificacion");
   $("#form-actividad [name='fecha']").min = new Date().toISOString().slice(0, 10);
+  $("#detalle-actividad").addEventListener("close", () => {
+    mapaDetalleActividad?.remove();
+    mapaDetalleActividad = null;
+  });
 
   $("#usar-ubicacion").addEventListener("click", () => {
     if (!navigator.geolocation) {
@@ -764,12 +850,18 @@ function inicializarInterfazActividades() {
     const mensaje = $("#mensaje-actividad");
     const boton = form.querySelector("button[type=submit]");
     const categorias = data.getAll("categorias");
+    const alturaMetros = convertirAlturaAMetros(data.get("alturaActividadValor"), data.get("alturaActividadUnidad"));
+    const altura = clasificarAltura(alturaMetros);
     if (!usuarioActual) {
       mensaje.textContent = "Espera a que se conecte tu sesión de invitado.";
       return;
     }
     if (categorias.length === 0) {
       mensaje.textContent = "Selecciona al menos una categoría de árbol.";
+      return;
+    }
+    if (!altura) {
+      mensaje.textContent = "Ingresa una altura válida en centímetros o metros (máximo 200 m).";
       return;
     }
     if (!ubicacionActividad) {
@@ -784,6 +876,8 @@ function inicializarInterfazActividades() {
         empresa: data.get("empresa").trim(),
         titulo: data.get("titulo").trim(),
         categorias,
+        altura,
+        alturaMetros,
         fecha: data.get("fecha"),
         descripcion: data.get("descripcion").trim(),
         latitud: ubicacionActividad.latitud,
@@ -1218,11 +1312,15 @@ $("#detalle-arbol").addEventListener("submit", async (e) => {
   }
 });
 
+conectarControlAltura("#form-arbol", "alturaArbolValor", "alturaArbolUnidad", "#altura-arbol-clasificacion");
+
 $("#form-arbol").addEventListener("submit", async (e) => {
   e.preventDefault();
   const form = e.target;
   const data = new FormData(form);
   const categorias = data.getAll("cat");
+  const alturaMetros = convertirAlturaAMetros(data.get("alturaArbolValor"), data.get("alturaArbolUnidad"));
+  const altura = clasificarAltura(alturaMetros);
   const tiposUso = data.getAll("tiposUso");
   const usosPartes = [...$("#usos-partes-lista").querySelectorAll(".uso-parte-fila")].map((fila) => ({
     parte: fila.querySelector("[name='parte']").value,
@@ -1231,6 +1329,11 @@ $("#form-arbol").addEventListener("submit", async (e) => {
 
   if (categorias.length === 0) {
     mostrarMensaje("Elige al menos una categoría.", "error");
+    return;
+  }
+
+  if (!altura) {
+    mostrarMensaje("Ingresa una altura válida en centímetros o metros (máximo 200 m).", "error");
     return;
   }
 
@@ -1254,10 +1357,11 @@ $("#form-arbol").addEventListener("submit", async (e) => {
       nombre: data.get("nombre").trim(),
       cientifico: data.get("cientifico").trim(),
       categorias,
+      altura,
+      alturaMetros,
       descripcion: data.get("descripcion").trim(),
       usos: data.get("usos").trim(),
       tiposUso,
-      usoDesechos: data.get("usoDesechos").trim(),
       usoMedicinal: data.get("usoMedicinal").trim(),
       usosPartes,
       foto,

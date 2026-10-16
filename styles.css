@@ -40,7 +40,7 @@ h1, h2, h3 { font-family: Georgia, "Times New Roman", serif; line-height: 1.2; }
   padding: 20px 0;
 }
 .nav .logo { display: flex; align-items: center; gap: 11px; margin-right: auto; font-family: Georgia, "Times New Roman", serif; font-weight: 700; font-size: 1.4rem; white-space: nowrap; text-shadow: 0 1px 5px rgba(0, 0, 0, .55); }
-.nav .logo img { display: block; width: 62px; height: 62px; flex: 0 0 62px; filter: drop-shadow(0 1px 4px rgba(0, 0, 0, .35)); }
+.nav .logo img { display: block; width: 62px; height: 50px; flex: 0 0 62px; object-fit: cover; object-position: center top; overflow: hidden; border: 1px solid rgba(255, 248, 233, .55); border-radius: 8px; background: #f4edc4; filter: drop-shadow(0 1px 4px rgba(0, 0, 0, .35)); }
 .nav a, .nav-action { color: #fff; text-decoration: none; opacity: .9; }
 .nav-action {
   padding: 0;
@@ -135,9 +135,15 @@ h1, h2, h3 { font-family: Georgia, "Times New Roman", serif; line-height: 1.2; }
 .reclamo-mensaje:last-child { padding-bottom: 0; border-bottom: 0; }
 .reclamo-mensaje p { margin-top: 4px; }
 .formulario-actividad { max-width: 760px; }
-.categorias-arbol-form { display: grid; gap: 10px; margin: 0; padding: 14px; border: 1px solid var(--borde); border-radius: 8px; background: #f4f7f1; }
-.categorias-arbol-form legend { padding: 0 5px; color: var(--texto); font-weight: 700; }
-.categorias-arbol-form .checks { gap: 8px 16px; }
+.categorias-arbol-form, .altura-arbol-form { display: grid; gap: 10px; margin: 0; padding: 14px; border: 1px solid var(--borde); border-radius: 8px; background: #f4f7f1; }
+.categorias-arbol-form legend, .altura-arbol-form legend { padding: 0 5px; color: var(--texto); font-weight: 700; }
+.categorias-arbol-form .checks, .altura-arbol-form .checks { gap: 8px 16px; }
+.altura-medicion-inputs { display: grid; grid-template-columns: minmax(0, 1fr) minmax(150px, .4fr); gap: 10px; }
+.altura-medicion-inputs label { display: grid; gap: 6px; }
+.altura-medicion-inputs input, .altura-medicion-inputs select { width: 100%; min-width: 0; }
+.altura-ayuda, .altura-clasificacion { margin: 0; color: var(--gris); font-size: .9rem; }
+.altura-clasificacion { color: var(--verde); font-weight: 700; }
+.altura-clasificacion.altura-invalida { color: #a12626; }
 .ubicacion-editor { display: grid; gap: 10px; min-width: 0; }
 .ubicacion-encabezado { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .ubicacion-encabezado p { margin: 3px 0 0; color: var(--gris); font-size: .9rem; }
@@ -150,8 +156,7 @@ h1, h2, h3 { font-family: Georgia, "Times New Roman", serif; line-height: 1.2; }
 .detalle-cuerpo-actividad { gap: 12px; }
 .detalle-cuerpo-actividad h3 { margin: 0; color: var(--verde); font-size: 1.65rem; }
 .detalle-cuerpo-actividad > p { margin: 0; }
-.actividad-enlace-mapa { justify-self: start; color: var(--verde); font-weight: 600; text-decoration-thickness: 1px; text-underline-offset: 3px; }
-.actividad-enlace-mapa:hover { color: var(--tierra); }
+.mapa-detalle-actividad { width: 100%; height: 250px; overflow: hidden; background: #e8eee4; border: 1px solid var(--borde); border-radius: 8px; z-index: 0; }
 
 /* Filtros */
 .controls { display: flex; flex-direction: column; gap: 14px; margin-bottom: 24px; }
@@ -397,6 +402,7 @@ footer { text-align: center; padding: 30px 20px; color: var(--gris); font-size: 
   dialog.detalle-modal { max-height: calc(100dvh - 24px); }
   .detalle-foto { height: 210px; }
   .detalle-cuerpo { padding: 16px; }
+  .mapa-detalle-actividad { height: 210px; }
   .form-modal { max-height: calc(100dvh - 20px); width: calc(100vw - 20px); }
   .form-modal-inner { padding: 18px; }
   .form-modal h2 { font-size: 1.5rem; }
@@ -407,6 +413,7 @@ footer { text-align: center; padding: 30px 20px; color: var(--gris); font-size: 
 }
 
 @media (max-width: 520px) {
+  .altura-medicion-inputs { grid-template-columns: minmax(0, 1fr) minmax(120px, .65fr); }
   .uso-parte-fila { grid-template-columns: minmax(0, 1fr) auto; }
   .uso-parte-fila label:nth-child(2) { grid-column: 1 / -1; grid-row: 2; }
   .uso-eliminar { grid-column: 2; grid-row: 1; }

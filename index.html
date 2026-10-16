@@ -5,13 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Árboles que dan vida | Biomasa urbana</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-  <link rel="stylesheet" href="styles.css?v=25">
+  <link rel="stylesheet" href="styles.css?v=28">
 </head>
 <body>
 
   <header class="hero">
     <nav class="nav">
-      <span class="logo"><img src="imagenes/rootloop-logo.svg?v=2" alt=""><span>RootLoop</span></span>
+      <span class="logo"><img src="imagenes/rootloop-logo.png?v=1" alt=""><span>Rebrota</span></span>
       <a href="#catalogo" data-vista-principal="catalogo" aria-current="page">Catálogo</a>
       <a href="#actividades" data-vista-principal="actividades">Actividades</a>
       <button id="abrir-aporte" class="nav-action" type="button">Aportar un árbol</button>
@@ -65,8 +65,16 @@
             <label><input type="checkbox" name="categorias" value="medicinal"> 🌿 Medicinal</label>
             <label><input type="checkbox" name="categorias" value="sombra"> ⛱️ Sombra</label>
             <label><input type="checkbox" name="categorias" value="forraje"> 🐄 Forraje / abono</label>
-            <label><input type="checkbox" name="categorias" value="desechos"> ♻️ Desechos</label>
           </div>
+        </fieldset>
+        <fieldset class="altura-arbol-form">
+          <legend>Altura aproximada *</legend>
+          <div class="altura-medicion-inputs">
+            <label>Medida<input name="alturaActividadValor" type="number" min="0.01" step="0.01" required placeholder="Ej. 4.5"></label>
+            <label>Unidad<select name="alturaActividadUnidad"><option value="m">Metros (m)</option><option value="cm">Centímetros (cm)</option></select></label>
+          </div>
+          <p class="altura-ayuda">Pequeño: hasta 5 m · Mediano: más de 5 y hasta 15 m · Alto: más de 15 m</p>
+          <p id="altura-actividad-clasificacion" class="altura-clasificacion" role="status">Ingresa la altura para ver su clasificación.</p>
         </fieldset>
         <label>Fecha programada *<input name="fecha" type="date" required></label>
         <label>Descripción *<textarea name="descripcion" required maxlength="800" rows="4" placeholder="Describe la tala, el volumen estimado y cómo se entregará la biomasa."></textarea></label>
@@ -104,7 +112,9 @@
         <button class="chip" data-cat="medicinal">🌿 Medicinal</button>
         <button class="chip" data-cat="sombra">⛱️ Sombra</button>
         <button class="chip" data-cat="forraje">🐄 Forraje / abono</button>
-        <button class="chip" data-cat="desechos">♻️ Desechos</button>
+        <button class="chip" data-cat="altura-pequeno">🌱 Pequeño</button>
+        <button class="chip" data-cat="altura-mediano">🌳 Mediano</button>
+        <button class="chip" data-cat="altura-alto">🌲 Alto</button>
       </div>
     </div>
     <div id="lista" class="grid"></div>
@@ -130,9 +140,17 @@
           <label><input type="checkbox" name="cat" value="medicinal"> Medicinal</label>
           <label><input type="checkbox" name="cat" value="sombra"> Sombra</label>
           <label><input type="checkbox" name="cat" value="forraje"> Forraje / abono</label>
-          <label><input type="checkbox" name="cat" value="desechos"> ♻️ Desechos</label>
         </div>
       </label>
+      <fieldset class="altura-arbol-form">
+        <legend>Altura aproximada *</legend>
+        <div class="altura-medicion-inputs">
+          <label>Medida<input name="alturaArbolValor" type="number" min="0.01" step="0.01" required placeholder="Ej. 4.5"></label>
+          <label>Unidad<select name="alturaArbolUnidad"><option value="m">Metros (m)</option><option value="cm">Centímetros (cm)</option></select></label>
+        </div>
+        <p class="altura-ayuda">Pequeño: hasta 1 m · Mediano: más de 5 y hasta 15 m · Alto: más de 15 m</p>
+        <p id="altura-arbol-clasificacion" class="altura-clasificacion" role="status">Ingresa la altura para ver su clasificación.</p>
+      </fieldset>
       <label>Descripción breve *
         <textarea name="descripcion" required maxlength="300" rows="3" placeholder="¿Cómo es el árbol?"></textarea>
       </label>
@@ -141,17 +159,12 @@
       </label>
       <section class="tipo-usos-form" aria-labelledby="tipo-usos-titulo">
         <div>
-          <strong id="tipo-usos-titulo">Desechos y uso medicinal</strong>
-          <p>Marca las opciones que correspondan. Puedes elegir ambas.</p>
+          <strong id="tipo-usos-titulo">Uso medicinal tradicional (opcional)</strong>
+          <p>Se mostrará como conocimiento tradicional, no como recomendación médica.</p>
         </div>
         <div class="checks tipo-usos-opciones">
-          <label><input type="checkbox" name="tiposUso" value="desechos"> Aprovechamiento de desechos</label>
           <label><input type="checkbox" name="tiposUso" value="medicinal"> Uso medicinal tradicional</label>
         </div>
-        <label class="tipo-uso-campo" data-tipo-uso="desechos" hidden>
-          Detalle del aprovechamiento de desechos
-          <textarea name="usoDesechos" maxlength="300" rows="2" placeholder="Ej. hojas para compost y ramas para mulch"></textarea>
-        </label>
         <label class="tipo-uso-campo" data-tipo-uso="medicinal" hidden>
           Detalle del uso medicinal tradicional
           <textarea name="usoMedicinal" maxlength="300" rows="2" placeholder="Describe el uso tradicional, sin presentarlo como recomendación médica"></textarea>
@@ -223,6 +236,6 @@
   </footer>
 
   <script type="module" src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script type="module" src="app.js?v=19"></script>
+  <script type="module" src="app.js?v=22"></script>
 </body>
 </html>

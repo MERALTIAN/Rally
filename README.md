@@ -29,9 +29,28 @@ service cloud.firestore {
     match /arboles/{id} {
       allow read: if true;
       allow create: if request.resource.data.nombre is string
-        && request.resource.data.nombre.size() <= 60
-        && request.resource.data.descripcion.size() <= 300
-        && request.resource.data.usos.size() <= 400;
+          && request.resource.data.keys().hasAll(["nombre", "cientifico", "categorias", "altura", "alturaMetros", "descripcion", "usos", "tiposUso", "usoMedicinal", "usosPartes", "foto", "autor", "creado"])
+          && request.resource.data.keys().hasOnly(["nombre", "cientifico", "categorias", "altura", "alturaMetros", "descripcion", "usos", "tiposUso", "usoMedicinal", "usosPartes", "foto", "autor", "creado"])
+          && request.resource.data.nombre is string
+          && request.resource.data.nombre.size() <= 60
+          && request.resource.data.descripcion.size() <= 300
+          && request.resource.data.usos.size() <= 400
+          && request.resource.data.categorias is list
+          && request.resource.data.categorias.size() > 0
+          && request.resource.data.categorias.size() <= 5
+          && request.resource.data.categorias.toSet().difference(["frutal", "floral", "medicinal", "sombra", "forraje"].toSet()).size() == 0
+          && request.resource.data.altura in ["pequeno", "mediano", "alto"]
+          && request.resource.data.alturaMetros is number
+          && request.resource.data.alturaMetros > 0
+          && request.resource.data.alturaMetros <= 200
+          && ((request.resource.data.alturaMetros <= 5 && request.resource.data.altura == "pequeno")
+            || (request.resource.data.alturaMetros > 5 && request.resource.data.alturaMetros <= 15 && request.resource.data.altura == "mediano")
+            || (request.resource.data.alturaMetros > 15 && request.resource.data.altura == "alto"))
+          && request.resource.data.tiposUso is list
+          && request.resource.data.tiposUso.toSet().difference(["medicinal"].toSet()).size() == 0
+          && request.resource.data.usoMedicinal is string
+          && request.resource.data.usoMedicinal.size() <= 300
+          && request.resource.data.creado == request.time;
       allow update, delete: if false;
     }
 
@@ -53,20 +72,25 @@ service cloud.firestore {
       allow read: if true;
       allow create: if request.auth != null
         && request.resource.data.creadorId == request.auth.uid
-        && request.resource.data.keys().hasAll(["empresa", "titulo", "categorias", "fecha", "descripcion", "latitud", "longitud", "creadorId", "estado", "creado"])
-        && request.resource.data.keys().hasOnly(["empresa", "titulo", "categorias", "fecha", "descripcion", "latitud", "longitud", "creadorId", "estado", "creado"])
+        && request.resource.data.keys().hasAll(["empresa", "titulo", "categorias", "altura", "alturaMetros", "fecha", "descripcion", "latitud", "longitud", "creadorId", "estado", "creado"])
+        && request.resource.data.keys().hasOnly(["empresa", "titulo", "categorias", "altura", "alturaMetros", "fecha", "descripcion", "latitud", "longitud", "creadorId", "estado", "creado"])
         && request.resource.data.empresa is string
-        && request.resource.data.empresa.size() > 0
-        && request.resource.data.empresa.size() <= 100
         && request.resource.data.titulo is string
         && request.resource.data.titulo.size() > 0
         && request.resource.data.titulo.size() <= 100
         && request.resource.data.categorias is list
         && request.resource.data.categorias.size() > 0
-        && request.resource.data.categorias.size() <= 6
-        && request.resource.data.categorias.toSet().difference(["frutal", "floral", "medicinal", "sombra", "forraje", "desechos"].toSet()).size() == 0
+        && request.resource.data.categorias.size() <= 5
+        && request.resource.data.categorias.toSet().difference(["frutal", "floral", "medicinal", "sombra", "forraje"].toSet()).size() == 0
+        && request.resource.data.altura in ["pequeno", "mediano", "alto"]
+        && request.resource.data.alturaMetros is number
+        && request.resource.data.alturaMetros > 0
+        && request.resource.data.alturaMetros <= 200
+        && ((request.resource.data.alturaMetros <= 5 && request.resource.data.altura == "pequeno")
+          || (request.resource.data.alturaMetros > 5 && request.resource.data.alturaMetros <= 15 && request.resource.data.altura == "mediano")
+          || (request.resource.data.alturaMetros > 15 && request.resource.data.altura == "alto"))
         && request.resource.data.fecha is string
-        && request.resource.data.descripcion is string
+        && request.resource.data.categorias.toSet().difference(["frutal", "floral", "medicinal", "sombra", "forraje"].toSet()).size() == 0
         && request.resource.data.descripcion.size() > 0
         && request.resource.data.descripcion.size() <= 800
         && request.resource.data.latitud is number
@@ -123,11 +147,12 @@ Colección `arboles`, un documento por árbol:
 |---|---|---|
 | nombre | texto | "Guanábana" |
 | cientifico | texto | "Annona muricata" |
-| categorias | lista | ["frutal", "medicinal", "desechos"] |
+| categorias | lista | ["frutal", "medicinal"] |
+| alturaMetros | número | 4.5 |
+| altura | texto | "pequeno", "mediano" o "alto" (calculado desde la medida) |
 | descripcion | texto | "Árbol pequeño..." |
 | usos | texto | "Hojas al compost..." |
-| tiposUso | lista | ["desechos", "medicinal"] |
-| usoDesechos | texto | "Hojas para compost..." |
+| tiposUso | lista | ["medicinal"] |
 | usoMedicinal | texto | "Uso tradicional de las hojas..." |
 | usosPartes | lista de objetos | [{"parte":"Hojas","descripcion":"Se convierten en abono"}] |
 | foto | texto (imagen comprimida) | "data:image/jpeg;base64,..." |
@@ -141,7 +166,7 @@ Las actividades se guardan en `actividades_tala` con empresa, título, fecha, de
 
 El mapa usa Leaflet y teselas de OpenStreetMap. Para publicar una actividad hay que conceder permiso de ubicación o seleccionar manualmente el punto en el mapa. Firebase Authentication debe tener habilitado el proveedor **Anónimo**; así cada navegador obtiene una identidad que separa las publicaciones y los reclamos. La app muestra las actividades abiertas al público, y la pestaña **Mis actividades** solo muestra las creadas por la sesión actual.
 
-Campos de `actividades_tala`: `empresa`, `titulo`, `categorias` (lista de valores del catálogo), `fecha` (texto `AAAA-MM-DD`), `descripcion`, `latitud`, `longitud`, `creadorId`, `estado` (`abierta` o `cerrada`) y `creado`. Cada documento de `reclamos` usa el UID del reclamante como ID y guarda `actividadId`, `usuarioId`, `nombre`, `contacto`, `mensaje` y `creado`, lo que evita que una misma cuenta reclame dos veces la misma actividad.
+Campos de `actividades_tala`: `empresa`, `titulo`, `categorias` (lista de valores del catálogo), `alturaMetros` (número en metros), `altura` (categoría calculada), `fecha` (texto `AAAA-MM-DD`), `descripcion`, `latitud`, `longitud`, `creadorId`, `estado` (`abierta` o `cerrada`) y `creado`. Los rangos usados son pequeño hasta 5 m, mediano por encima de 5 y hasta 15 m, y alto por encima de 15 m. Cada documento de `reclamos` usa el UID del reclamante como ID y guarda `actividadId`, `usuarioId`, `nombre`, `contacto`, `mensaje` y `creado`, lo que evita que una misma cuenta reclame dos veces la misma actividad.
 
 ## Sobre las fotos
 Las fotos se redimensionan a 800 px y se guardan como texto dentro del documento, por lo que no hace falta Firebase Storage (que puede requerir el plan de pago Blaze). Si más adelante quieren muchas fotos o de mayor calidad, conviene pasar a Storage o a un servicio como Cloudinary.
