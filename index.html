@@ -5,13 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Árboles que dan vida | Biomasa urbana</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-  <link rel="stylesheet" href="styles.css?v=28">
+  <link rel="stylesheet" href="styles.css?v=29">
 </head>
 <body>
 
   <header class="hero">
     <nav class="nav">
-      <span class="logo"><img src="imagenes/rootloop-logo.png?v=1" alt=""><span>Rebrota</span></span>
+      <span class="logo"><img src="imagenes/rootloop-logo.png?v=2" alt="Logo de Rebrota"><span>Rebrota</span></span>
       <a href="#catalogo" data-vista-principal="catalogo" aria-current="page">Catálogo</a>
       <a href="#actividades" data-vista-principal="actividades">Actividades</a>
       <button id="abrir-aporte" class="nav-action" type="button">Aportar un árbol</button>
@@ -68,13 +68,13 @@
           </div>
         </fieldset>
         <fieldset class="altura-arbol-form">
-          <legend>Altura aproximada *</legend>
-          <div class="altura-medicion-inputs">
-            <label>Medida<input name="alturaActividadValor" type="number" min="0.01" step="0.01" required placeholder="Ej. 4.5"></label>
-            <label>Unidad<select name="alturaActividadUnidad"><option value="m">Metros (m)</option><option value="cm">Centímetros (cm)</option></select></label>
+          <legend>Altura del árbol *</legend>
+          <p class="altura-ayuda">(Elige una opción: pequeño de 0 a 5 m; mediano de 5 m a 15 m; alto de 15 m en adelante)</p>
+          <div class="checks">
+            <label><input type="radio" name="alturaActividad" value="pequeno" required> 🌱 Pequeño</label>
+            <label><input type="radio" name="alturaActividad" value="mediano" required> 🌳 Mediano</label>
+            <label><input type="radio" name="alturaActividad" value="alto" required> 🌲 Alto</label>
           </div>
-          <p class="altura-ayuda">Pequeño: hasta 5 m · Mediano: más de 5 y hasta 15 m · Alto: más de 15 m</p>
-          <p id="altura-actividad-clasificacion" class="altura-clasificacion" role="status">Ingresa la altura para ver su clasificación.</p>
         </fieldset>
         <label>Fecha programada *<input name="fecha" type="date" required></label>
         <label>Descripción *<textarea name="descripcion" required maxlength="800" rows="4" placeholder="Describe la tala, el volumen estimado y cómo se entregará la biomasa."></textarea></label>
@@ -143,13 +143,13 @@
         </div>
       </label>
       <fieldset class="altura-arbol-form">
-        <legend>Altura aproximada *</legend>
-        <div class="altura-medicion-inputs">
-          <label>Medida<input name="alturaArbolValor" type="number" min="0.01" step="0.01" required placeholder="Ej. 4.5"></label>
-          <label>Unidad<select name="alturaArbolUnidad"><option value="m">Metros (m)</option><option value="cm">Centímetros (cm)</option></select></label>
+        <legend>Altura del árbol *</legend>
+          <p class="altura-ayuda">(Elige una opción: pequeño de 0 a 5 m; mediano de 5 m a 15 m; alto de 15 m en adelante)</p>
+        <div class="checks">
+          <label><input type="radio" name="alturaArbol" value="pequeno" required> 🌱 Pequeño</label>
+          <label><input type="radio" name="alturaArbol" value="mediano" required> 🌳 Mediano</label>
+          <label><input type="radio" name="alturaArbol" value="alto" required> 🌲 Alto</label>
         </div>
-        <p class="altura-ayuda">Pequeño: hasta 1 m · Mediano: más de 5 y hasta 15 m · Alto: más de 15 m</p>
-        <p id="altura-arbol-clasificacion" class="altura-clasificacion" role="status">Ingresa la altura para ver su clasificación.</p>
       </fieldset>
       <label>Descripción breve *
         <textarea name="descripcion" required maxlength="300" rows="3" placeholder="¿Cómo es el árbol?"></textarea>

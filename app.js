@@ -779,7 +779,7 @@ function inicializarInterfazActividades() {
   document.querySelectorAll(".actividad-tab").forEach((boton) => {
     boton.addEventListener("click", () => activarVistaActividades(boton.dataset.vista));
   });
-  conectarControlAltura("#form-actividad", "alturaActividadValor", "alturaActividadUnidad", "#altura-actividad-clasificacion");
+
   $("#form-actividad [name='fecha']").min = new Date().toISOString().slice(0, 10);
   $("#detalle-actividad").addEventListener("close", () => {
     mapaDetalleActividad?.remove();
@@ -850,8 +850,7 @@ function inicializarInterfazActividades() {
     const mensaje = $("#mensaje-actividad");
     const boton = form.querySelector("button[type=submit]");
     const categorias = data.getAll("categorias");
-    const alturaMetros = convertirAlturaAMetros(data.get("alturaActividadValor"), data.get("alturaActividadUnidad"));
-    const altura = clasificarAltura(alturaMetros);
+    const altura = data.get("alturaActividad");
     if (!usuarioActual) {
       mensaje.textContent = "Espera a que se conecte tu sesión de invitado.";
       return;
@@ -861,7 +860,7 @@ function inicializarInterfazActividades() {
       return;
     }
     if (!altura) {
-      mensaje.textContent = "Ingresa una altura válida en centímetros o metros (máximo 200 m).";
+      mensaje.textContent = "Elige una clasificación de altura.";
       return;
     }
     if (!ubicacionActividad) {
@@ -877,7 +876,6 @@ function inicializarInterfazActividades() {
         titulo: data.get("titulo").trim(),
         categorias,
         altura,
-        alturaMetros,
         fecha: data.get("fecha"),
         descripcion: data.get("descripcion").trim(),
         latitud: ubicacionActividad.latitud,
@@ -1312,15 +1310,14 @@ $("#detalle-arbol").addEventListener("submit", async (e) => {
   }
 });
 
-conectarControlAltura("#form-arbol", "alturaArbolValor", "alturaArbolUnidad", "#altura-arbol-clasificacion");
+
 
 $("#form-arbol").addEventListener("submit", async (e) => {
   e.preventDefault();
   const form = e.target;
   const data = new FormData(form);
   const categorias = data.getAll("cat");
-  const alturaMetros = convertirAlturaAMetros(data.get("alturaArbolValor"), data.get("alturaArbolUnidad"));
-  const altura = clasificarAltura(alturaMetros);
+  const altura = data.get("alturaArbol");
   const tiposUso = data.getAll("tiposUso");
   const usosPartes = [...$("#usos-partes-lista").querySelectorAll(".uso-parte-fila")].map((fila) => ({
     parte: fila.querySelector("[name='parte']").value,
@@ -1333,7 +1330,7 @@ $("#form-arbol").addEventListener("submit", async (e) => {
   }
 
   if (!altura) {
-    mostrarMensaje("Ingresa una altura válida en centímetros o metros (máximo 200 m).", "error");
+    mostrarMensaje("Elige una clasificación de altura.", "error");
     return;
   }
 
@@ -1358,7 +1355,6 @@ $("#form-arbol").addEventListener("submit", async (e) => {
       cientifico: data.get("cientifico").trim(),
       categorias,
       altura,
-      alturaMetros,
       descripcion: data.get("descripcion").trim(),
       usos: data.get("usos").trim(),
       tiposUso,

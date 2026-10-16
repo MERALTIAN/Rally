@@ -40,7 +40,7 @@ h1, h2, h3 { font-family: Georgia, "Times New Roman", serif; line-height: 1.2; }
   padding: 20px 0;
 }
 .nav .logo { display: flex; align-items: center; gap: 11px; margin-right: auto; font-family: Georgia, "Times New Roman", serif; font-weight: 700; font-size: 1.4rem; white-space: nowrap; text-shadow: 0 1px 5px rgba(0, 0, 0, .55); }
-.nav .logo img { display: block; width: 62px; height: 50px; flex: 0 0 62px; object-fit: cover; object-position: center top; overflow: hidden; border: 1px solid rgba(255, 248, 233, .55); border-radius: 8px; background: #f4edc4; filter: drop-shadow(0 1px 4px rgba(0, 0, 0, .35)); }
+.nav .logo img { display: block; width: 68px; height: 64px; flex: 0 0 68px; object-fit: contain; object-position: center; overflow: hidden; border: 1px solid rgba(255, 248, 233, .55); border-radius: 8px; background: #f4edc4; filter: drop-shadow(0 1px 4px rgba(0, 0, 0, .35)); }
 .nav a, .nav-action { color: #fff; text-decoration: none; opacity: .9; }
 .nav-action {
   padding: 0;
