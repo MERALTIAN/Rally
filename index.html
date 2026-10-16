@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Árboles que dan vida | Biomasa urbana</title>
+  <link rel="stylesheet" href="styles.css?v=18">
+</head>
+<body>
+
+  <header class="hero">
+    <nav class="nav">
+      <span class="logo"><img src="imagenes/rootloop-logo.svg?v=2" alt=""><span>RootLoop</span></span>
+      <a href="#catalogo">Catálogo</a>
+      <button id="abrir-aporte" class="nav-action" type="button">Aportar un árbol</button>
+    </nav>
+    <div class="hero-text">
+      <h1>La poda no es basura: es recurso</h1>
+      <p>Conoce los árboles de tu ciudad y descubre cómo reutilizar sus hojas, ramas y frutos para que la biomasa vuelva al suelo, a la biodiversidad y a la comunidad.</p>
+      <a class="btn" href="#catalogo">Explorar árboles</a>
+    </div>
+  </header>
+
+  <section class="stats">
+    <div><strong id="stat-total">0</strong><span>árboles registrados</span></div>
+    <div><strong id="stat-medicinal">0</strong><span>con uso medicinal tradicional</span></div>
+    <div><strong id="stat-usuarios">0</strong><span>aportes de la comunidad</span></div>
+  </section>
+
+  <section id="catalogo" class="section">
+    <h2>Catálogo de árboles</h2>
+    <dialog id="detalle-arbol" class="detalle-modal" aria-labelledby="detalle-titulo"></dialog>
+    <div class="controls">
+      <input id="buscar" type="search" placeholder="Buscar por nombre o uso...">
+      <div id="filtros" class="chips">
+        <button class="chip activo" data-cat="todas">Todos</button>
+        <button class="chip" data-cat="frutal">🍎 Frutal</button>
+        <button class="chip" data-cat="floral">🌸 Floral</button>
+        <button class="chip" data-cat="medicinal">🌿 Medicinal</button>
+        <button class="chip" data-cat="sombra">⛱️ Sombra</button>
+        <button class="chip" data-cat="forraje">🐄 Forraje / abono</button>
+        <button class="chip" data-cat="desechos">♻️ Desechos</button>
+      </div>
+    </div>
+    <div id="lista" class="grid"></div>
+    <p id="vacio" class="vacio" hidden>No encontramos árboles con ese filtro.</p>
+  </section>
+
+  <dialog id="aportar" class="form-modal" aria-labelledby="aportar-titulo">
+    <div class="form-modal-inner">
+      <button class="form-cerrar" type="button" aria-label="Cerrar formulario">Cerrar</button>
+      <h2 id="aportar-titulo">¿Conoces un árbol que no está aquí?</h2>
+      <p class="sub">Compártelo con la comunidad. Tu aporte aparecerá en el catálogo.</p>
+      <form id="form-arbol" class="form">
+      <label>Nombre del árbol *
+        <input name="nombre" required maxlength="60" placeholder="Ej. Guanábana">
+      </label>
+      <label>Nombre científico (opcional)
+        <input name="cientifico" maxlength="80" placeholder="Ej. Annona muricata">
+      </label>
+      <label>Categorías * (puedes marcar varias)
+        <div class="checks">
+          <label><input type="checkbox" name="cat" value="frutal"> Frutal</label>
+          <label><input type="checkbox" name="cat" value="floral"> Floral</label>
+          <label><input type="checkbox" name="cat" value="medicinal"> Medicinal</label>
+          <label><input type="checkbox" name="cat" value="sombra"> Sombra</label>
+          <label><input type="checkbox" name="cat" value="forraje"> Forraje / abono</label>
+          <label><input type="checkbox" name="cat" value="desechos"> ♻️ Desechos</label>
+        </div>
+      </label>
+      <label>Descripción breve *
+        <textarea name="descripcion" required maxlength="300" rows="3" placeholder="¿Cómo es el árbol?"></textarea>
+      </label>
+      <label>¿Para qué se puede reutilizar? *
+        <textarea name="usos" required maxlength="400" rows="3" placeholder="Hojas para compost, mulch, té tradicional, forraje..."></textarea>
+      </label>
+      <section class="tipo-usos-form" aria-labelledby="tipo-usos-titulo">
+        <div>
+          <strong id="tipo-usos-titulo">Desechos y uso medicinal</strong>
+          <p>Marca las opciones que correspondan. Puedes elegir ambas.</p>
+        </div>
+        <div class="checks tipo-usos-opciones">
+          <label><input type="checkbox" name="tiposUso" value="desechos"> Aprovechamiento de desechos</label>
+          <label><input type="checkbox" name="tiposUso" value="medicinal"> Uso medicinal tradicional</label>
+        </div>
+        <label class="tipo-uso-campo" data-tipo-uso="desechos" hidden>
+          Detalle del aprovechamiento de desechos
+          <textarea name="usoDesechos" maxlength="300" rows="2" placeholder="Ej. hojas para compost y ramas para mulch"></textarea>
+        </label>
+        <label class="tipo-uso-campo" data-tipo-uso="medicinal" hidden>
+          Detalle del uso medicinal tradicional
+          <textarea name="usoMedicinal" maxlength="300" rows="2" placeholder="Describe el uso tradicional, sin presentarlo como recomendación médica"></textarea>
+        </label>
+      </section>
+      <div class="usos-extra-form">
+        <div>
+          <strong>Otros usos por parte del árbol</strong>
+          <p>Agrega cómo se pueden aprovechar las hojas, el tronco u otras partes.</p>
+        </div>
+        <div id="usos-partes-lista" class="usos-partes-lista"></div>
+        <button id="agregar-uso" class="btn-secundario" type="button">+ Agregar otro uso</button>
+      </div>
+      <div class="foto-campo">
+        <span class="foto-titulo">Foto</span>
+        <div class="foto-acciones">
+          <div class="foto-opcion">
+            <input id="foto-galeria" class="entrada-archivo" name="foto" type="file" accept="image/*">
+            <label for="foto-galeria">Elegir imagen</label>
+          </div>
+          <div class="foto-opcion">
+            <input id="foto-camara" class="entrada-archivo" name="foto-camara" type="file" accept="image/*" capture="environment">
+            <button id="abrir-camara" class="btn-secundario" type="button">Tomar foto</button>
+          </div>
+        </div>
+        <div id="camara-panel" class="camara-panel" hidden>
+          <video id="camara-video" autoplay playsinline muted></video>
+          <div class="camara-acciones">
+            <button id="capturar-foto" class="btn" type="button">Capturar foto</button>
+            <button id="cerrar-camara" class="cancelar-form-uso" type="button">Cancelar</button>
+          </div>
+          <p id="camara-estado" role="status"></p>
+        </div>
+        <p id="foto-nombre" class="foto-nombre">Puedes elegir una imagen o tomar una foto.</p>
+        <p id="verificacion-foto" class="verificacion-foto" role="status" aria-live="polite"></p>
+        <div id="foto-preview" class="foto-preview" hidden>
+          <img id="foto-preview-img" alt="Vista previa de la foto elegida">
+          <button id="quitar-foto" type="button">Quitar foto</button>
+        </div>
+      </div>
+      <label>Tu nombre (opcional)
+        <input name="autor" maxlength="40" placeholder="Anónimo">
+      </label>
+      <button class="btn" type="submit">Enviar árbol</button>
+        <p id="msg" class="msg" role="status"></p>
+      </form>
+    </div>
+  </dialog>
+
+  <footer>
+    <p>La información sobre usos medicinales se basa en prácticas tradicionales y tiene fines únicamente informativos. No constituye una recomendación médica ni sustituye la consulta con un profesional de la salud.</p>
+  </footer>
+
+  <script type="module" src="app.js?v=12"></script>
+</body>
+</html>
